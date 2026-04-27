@@ -6281,7 +6281,7 @@ public:
 	static void LiteralConstructDouble(double dblVal, void* mem) 
 	{
 		int integer = int(dblVal);
-		int fraction = int(dblVal * double(1 << 15));
+		int fraction = int((dblVal - integer) * double(1 << 15));
 
 		new(mem) Fixed32((integer << 15) + fraction);
 	}
@@ -6320,6 +6320,26 @@ bool TestUserLiteral()
 		PRINTF("%s", bout.buffer.c_str());
 		TEST_FAILED;
 	}
+
+	asIScriptFunction* f = m->GetFunctionByName("test");
+	if (!f)
+	{
+		PRINTF("Failed to get test()\n");
+		TEST_FAILED;
+	}
+
+	asIScriptContext* ctx = engine->CreateContext();
+	ctx->Prepare(f);
+	if (ctx->Execute() != asEXECUTION_FINISHED) {
+		PRINTF("Failed to execute\n");
+		TEST_FAILED;
+	}
+	Fixed32 result = *(Fixed32*)ctx->GetAddressOfReturnValue();
+	if (static_cast<int>(result) != 3) {
+		PRINTF("Bad result %d (integral part = %d)\n", result.value, static_cast<int>(result));
+		TEST_FAILED;
+	}
+	ctx->Release();
 
 	engine->ShutDownAndRelease();
 
