@@ -160,6 +160,7 @@ namespace Test_Native_DefaultFunc         { bool Test(); }
 namespace TestFuncOverload                { bool Test(); }
 namespace TestConstructor                 { bool Test(); }
 
+namespace Test_Addon_Autowrapper   { bool Test(); }
 namespace Test_Addon_ScriptArray   { bool Test(); }
 namespace Test_Addon_ScriptHandle  { bool Test(); }
 namespace Test_Addon_Serializer    { bool Test(); }
@@ -233,7 +234,12 @@ int allTests()
 
 	InstallMemoryManager();
 
-	/*if( Test_Addon_ScriptFile::Test()    ) goto failed; else PRINTF("-- Test_Addon_ScriptFile passed\n");
+	if( TestCompiler::Test()                    ) goto failed; else PRINTF("-- TestCompiler passed\n");
+	if( TestOptimize()                          ) goto failed; else PRINTF("-- TestOptimize passed\n");
+	if( TestConversion::Test()                  ) goto failed; else PRINTF("-- TestConversion passed\n");
+	if( TestLiteral::Test()                     ) goto failed; else PRINTF("-- TestLiteral passed\n");
+	if( Test_Addon_Autowrapper::Test()   ) goto failed; else PRINTF("-- Test_Addon_Autowrapper passed\n");
+	if( Test_Addon_ScriptFile::Test()    ) goto failed; else PRINTF("-- Test_Addon_ScriptFile passed\n");
 	if( Test_Addon_ContextMgr::Test()    ) goto failed; else PRINTF("-- Test_Addon_ContextMgr passed\n");
 	if( Test_Addon_ScriptGrid::Test()    ) goto failed; else PRINTF("-- Test_Addon_ScriptGrid passed\n");
 	if( Test_Addon_WeakRef::Test()       ) goto failed; else PRINTF("-- Test_Addon_WeakRef passed\n");
@@ -252,7 +258,7 @@ int allTests()
 	if( Test_Addon_ScriptSocket::Test()  ) goto failed; else PRINTF("-- Test_Addon_ScriptSocket passed\n");
 #endif
 
-	if (TestLiteral::Test()                     ) goto failed; else PRINTF("-- TestLiteral passed\n");
+
 	if( TestForEach::Test()                     ) goto failed; else PRINTF("-- TestForEach passed\n");
 	if( TestContext::Test()                     ) goto failed; else PRINTF("-- TestContext passed\n");
 	if( TestComposition::Test()                 ) goto failed; else PRINTF("-- TestComposition passed\n");
@@ -280,10 +286,10 @@ int allTests()
 	if( TestInterface::Test()                   ) goto failed; else PRINTF("-- TestInterface passed\n");
 	if( TestCastOp::Test()                      ) goto failed; else PRINTF("-- TestCastOp passed\n");
 	if( Test2Modules()                          ) goto failed; else PRINTF("-- Test2Modules passed\n");
-	if( TestArrayObject::Test()                 ) goto failed; else PRINTF("-- TestArrayObject passed\n");*/
-	if( TestCompiler::Test()                    ) goto failed; else PRINTF("-- TestCompiler passed\n");
-	if( TestOptimize()                          ) goto failed; else PRINTF("-- TestOptimize passed\n");
-	if( TestConversion::Test()                  ) goto failed; else PRINTF("-- TestConversion passed\n");
+	if( TestArrayObject::Test()                 ) goto failed; else PRINTF("-- TestArrayObject passed\n");
+/* 	if( TestCompiler::Test()                    ) goto failed; else PRINTF("-- TestCompiler passed\n"); */
+/*	if( TestOptimize()                          ) goto failed; else PRINTF("-- TestOptimize passed\n");*/
+/*	if( TestConversion::Test()                  ) goto failed; else PRINTF("-- TestConversion passed\n");*/
 	if( TestRegisterType::Test()                ) goto failed; else PRINTF("-- TestRegisterType passed\n");
 	if( TestRefArgument::Test()                 ) goto failed; else PRINTF("-- TestRefArgument passed\n");
 	if( TestStream::Test()                      ) goto failed; else PRINTF("-- TestStream passed\n");

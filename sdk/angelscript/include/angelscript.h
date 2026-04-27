@@ -1,6 +1,6 @@
 /*
    AngelCode Scripting Library
-   Copyright (c) 2003-2025 Andreas Jonsson
+   Copyright (c) 2003-2026 Andreas Jonsson
 
    This software is provided 'as-is', without any express or implied
    warranty. In no event will the authors be held liable for any
@@ -210,7 +210,7 @@ enum asECallConvTypes
 };
 
 // Object type flags
-enum asEObjTypeFlags : asQWORD
+enum asEObjTypeFlags
 {
 	asOBJ_REF                         = (1<<0),
 	asOBJ_VALUE                       = (1<<1),
@@ -240,7 +240,6 @@ enum asEObjTypeFlags : asQWORD
 	asOBJ_APP_CLASS_A                 = (asOBJ_APP_CLASS + asOBJ_APP_CLASS_ASSIGNMENT),
 	asOBJ_APP_CLASS_AK                = (asOBJ_APP_CLASS + asOBJ_APP_CLASS_ASSIGNMENT + asOBJ_APP_CLASS_COPY_CONSTRUCTOR),
 	asOBJ_APP_CLASS_K                 = (asOBJ_APP_CLASS + asOBJ_APP_CLASS_COPY_CONSTRUCTOR),
-	asOBJ_APP_CLASS_MORE_CONSTRUCTORS = (asQWORD(1) << 31),
 	asOBJ_APP_PRIMITIVE               = (1<<13),
 	asOBJ_APP_FLOAT                   = (1<<14),
 	asOBJ_APP_ARRAY                   = (1<<15),
@@ -249,8 +248,6 @@ enum asEObjTypeFlags : asQWORD
 	asOBJ_NOCOUNT                     = (1<<18),
 	asOBJ_APP_CLASS_ALIGN8            = (1<<19),
 	asOBJ_IMPLICIT_HANDLE             = (1<<20),
-	asOBJ_APP_CLASS_UNION             = (asQWORD(1)<<32),
-	asOBJ_MASK_VALID_FLAGS            = 0x1801FFFFFul,
 	// Internal flags
 	asOBJ_SCRIPT_OBJECT               = (1<<21),
 	asOBJ_SHARED                      = (1<<22),
@@ -263,6 +260,11 @@ enum asEObjTypeFlags : asQWORD
 	asOBJ_ABSTRACT                    = (1<<29),
 	asOBJ_APP_ALIGN16                 = (1<<30)
 };
+
+// These need to be here since they are too large for enum underlying type (int32 or uint32) on C++98 compliant compilers
+static const asQWORD asOBJ_MASK_VALID_FLAGS = 0x1801FFFFFLL;
+static const asQWORD asOBJ_APP_CLASS_MORE_CONSTRUCTORS = (asQWORD(1) << 31);
+static const asQWORD asOBJ_APP_CLASS_UNION = (asQWORD(1) << 32);
 
 // Behaviours
 enum asEBehaviours
@@ -428,7 +430,7 @@ typedef void (*asJITFunction)(asSVMRegisters* registers, asPWORD jitArg);
 #if !defined(_MSC_VER) || _MSC_VER >= 1700   // MSVC 2012
  #if !defined(__GNUC__) || defined(__clang__) || __GNUC__ > 4 || (__GNUC__ == 4 && __GNUC_MINOR__ >= 7)  // gnuc 4.7 or clang
   #if !(defined(__GNUC__) && defined(__cplusplus) && __cplusplus < 201103L) // gnuc and clang require compiler flag -std=c++11
-   #if !defined(__SUNPRO_CC) // Oracle Solaris Studio
+   #if !defined(__SUNPRO_CC) && !defined(__BORLANDC__) // Oracle Solaris Studio or Borland Builder
     #define AS_CAN_USE_CPP11 1
    #endif
   #endif
@@ -439,15 +441,15 @@ typedef void (*asJITFunction)(asSVMRegisters* registers, asPWORD jitArg);
 // GNUC should not complain about the usage as I'm not using 0 as the base pointer.
 #define asOFFSET(s,m) ((int)(size_t)(&reinterpret_cast<s*>(100000)->m)-100000)
 
-#define asFUNCTION(f) asFunctionPtr(f)
+#define asFUNCTION(f) AS_NAMESPACE_QUALIFIER asFunctionPtr(f)
 #if (defined(_MSC_VER) && _MSC_VER <= 1200) || (defined(__BORLANDC__) && __BORLANDC__ < 0x590)
 // MSVC 6 has a bug that prevents it from properly compiling using the correct asFUNCTIONPR with operator >
 // so we need to use ordinary C style cast instead of static_cast. The drawback is that the compiler can't
 // check that the cast is really valid.
 // BCC v5.8 (C++Builder 2006) and earlier have a similar bug which forces us to fall back to a C-style cast.
-#define asFUNCTIONPR(f,p,r) asFunctionPtr((void (*)())((r (*)p)(f)))
+#define asFUNCTIONPR(f,p,r) AS_NAMESPACE_QUALIFIER asFunctionPtr((void (*)())((r (*)p)(f)))
 #else
-#define asFUNCTIONPR(f,p,r) asFunctionPtr(reinterpret_cast<void (*)()>(static_cast<r (*)p>(f)))
+#define asFUNCTIONPR(f,p,r) AS_NAMESPACE_QUALIFIER asFunctionPtr(reinterpret_cast<void (*)()>(static_cast<r (*)p>(f)))
 #endif
 
 #ifndef AS_NO_CLASS_METHODS
@@ -501,8 +503,8 @@ template <typename T>
  #define AS_METHOD_AMBIGUITY_CAST(t) static_cast<t >
 #endif
 
-#define asMETHOD(c,m) asSMethodPtr<sizeof(void (c::*)())>::Convert((void (c::*)())(&c::m))
-#define asMETHODPR(c,m,p,r) asSMethodPtr<sizeof(void (c::*)())>::Convert(AS_METHOD_AMBIGUITY_CAST(r (c::*)p)(&c::m))
+#define asMETHOD(c,m) AS_NAMESPACE_QUALIFIER asSMethodPtr<sizeof(void (c::*)())>::Convert((void (c::*)())(&c::m))
+#define asMETHODPR(c,m,p,r) AS_NAMESPACE_QUALIFIER asSMethodPtr<sizeof(void (c::*)())>::Convert(AS_METHOD_AMBIGUITY_CAST(r (c::*)p)(&c::m))
 
 #else // Class methods are disabled
 
@@ -1204,7 +1206,10 @@ public:
 	virtual asUINT           GetVarCount() const = 0;
 	virtual int              GetVar(asUINT index, const char **name, int *typeId = 0) const = 0;
 	virtual const char      *GetVarDecl(asUINT index, bool includeNamespace = false) const = 0;
+#ifdef AS_DEPRECATED
+	// deprecated since 2025-11-14, 2.39.0
 	virtual int              FindNextLineWithCode(int line) const = 0;
+#endif
 	virtual int              GetDeclaredAt(const char** scriptSection, int* row, int* col) const = 0;
 	virtual int              GetLineEntryCount() const = 0;
 	virtual int              GetLineEntry(asUINT index, int* row, int* col, const char** sectionName, const asDWORD** byteCode) const = 0;
@@ -1694,11 +1699,14 @@ enum asEBCType
 	asBCTYPE_rW_QW_ARG    = 17,
 	asBCTYPE_W_DW_ARG     = 18,
 	asBCTYPE_rW_W_DW_ARG  = 19,
-	asBCTYPE_rW_DW_DW_ARG = 20
+	asBCTYPE_rW_DW_DW_ARG = 20,
+	asBCTYPE_W_DW_DW_ARG  = 21,
+	asBCTYPE_W_QW_DW_ARG  = 22,
+	asBCTYPE_W_rW_ARG     = 23
 };
 
 // Instruction type sizes
-const int asBCTypeSize[21] =
+const int asBCTypeSize[24] =
 {
 	0, // asBCTYPE_INFO
 	1, // asBCTYPE_NO_ARG
@@ -1720,7 +1728,10 @@ const int asBCTypeSize[21] =
 	3, // asBCTYPE_rW_QW_ARG
 	2, // asBCTYPE_W_DW_ARG
 	3, // asBCTYPE_rW_W_DW_ARG
-	3  // asBCTYPE_rW_DW_DW_ARG
+	3, // asBCTYPE_rW_DW_DW_ARG
+	3, // asBCTYPE_W_DW_DW_ARG
+	4, // asBCTYPE_W_QW_DW_ARG
+	2  // asBCTYPE_W_rW_ARG
 };
 
 // Instruction info
@@ -1733,25 +1744,27 @@ struct asSBCInfo
 };
 
 #ifndef AS_64BIT_PTR
-	#define asBCTYPE_PTR_ARG    asBCTYPE_DW_ARG
-	#define asBCTYPE_PTR_DW_ARG asBCTYPE_DW_DW_ARG
-	#define asBCTYPE_wW_PTR_ARG asBCTYPE_wW_DW_ARG
-	#define asBCTYPE_rW_PTR_ARG asBCTYPE_rW_DW_ARG
+	#define asBCTYPE_PTR_ARG      asBCTYPE_DW_ARG
+	#define asBCTYPE_PTR_DW_ARG   asBCTYPE_DW_DW_ARG
+	#define asBCTYPE_W_PTR_DW_ARG asBCTYPE_W_DW_DW_ARG
+	#define asBCTYPE_wW_PTR_ARG   asBCTYPE_wW_DW_ARG
+	#define asBCTYPE_rW_PTR_ARG   asBCTYPE_rW_DW_ARG
 	#ifndef AS_PTR_SIZE
 		#define AS_PTR_SIZE 1
 	#endif
 #else
-	#define asBCTYPE_PTR_ARG    asBCTYPE_QW_ARG
-	#define asBCTYPE_PTR_DW_ARG asBCTYPE_QW_DW_ARG
-	#define asBCTYPE_wW_PTR_ARG asBCTYPE_wW_QW_ARG
-	#define asBCTYPE_rW_PTR_ARG asBCTYPE_rW_QW_ARG
+	#define asBCTYPE_PTR_ARG      asBCTYPE_QW_ARG
+	#define asBCTYPE_PTR_DW_ARG   asBCTYPE_QW_DW_ARG
+	#define asBCTYPE_W_PTR_DW_ARG asBCTYPE_W_QW_DW_ARG
+	#define asBCTYPE_wW_PTR_ARG   asBCTYPE_wW_QW_ARG
+	#define asBCTYPE_rW_PTR_ARG   asBCTYPE_rW_QW_ARG
 	#ifndef AS_PTR_SIZE
 		#define AS_PTR_SIZE 2
 	#endif
 #endif
 
-#define asBCINFO(b,t,s) {asBC_##b, asBCTYPE_##t, s, #b}
-#define asBCINFO_DUMMY(b) {asBC_MAXBYTECODE, asBCTYPE_INFO, 0, "BC_" #b}
+#define asBCINFO(b,t,s) {AS_NAMESPACE_QUALIFIER asBC_##b, AS_NAMESPACE_QUALIFIER asBCTYPE_##t, s, #b}
+#define asBCINFO_DUMMY(b) {AS_NAMESPACE_QUALIFIER asBC_MAXBYTECODE, AS_NAMESPACE_QUALIFIER asBCTYPE_INFO, 0, "BC_" #b}
 
 const asSBCInfo asBCInfo[256] =
 {
@@ -1816,10 +1829,10 @@ const asSBCInfo asBCInfo[256] =
 	asBCINFO(PopRPtr,	NO_ARG,			-AS_PTR_SIZE),
 	asBCINFO(PshRPtr,	NO_ARG,			AS_PTR_SIZE),
 	asBCINFO(STR,		W_ARG,			1+AS_PTR_SIZE),
-	asBCINFO(CALLSYS,	DW_ARG,			0xFFFF),
+	asBCINFO(CALLSYS,	W_DW_ARG,		0xFFFF),
 	asBCINFO(CALLBND,	DW_ARG,			0xFFFF),
 	asBCINFO(SUSPEND,	NO_ARG,			0),
-	asBCINFO(ALLOC,		PTR_DW_ARG,		0xFFFF),
+	asBCINFO(ALLOC,		W_PTR_DW_ARG,	0xFFFF),
 	asBCINFO(FREE,		wW_PTR_ARG,		0),
 	asBCINFO(LOADOBJ,	rW_ARG,			0),
 	asBCINFO(STOREOBJ,	wW_ARG,			0),
@@ -1931,7 +1944,7 @@ const asSBCInfo asBCInfo[256] =
 	asBCINFO(ChkNullS,	W_ARG,			0),
 	asBCINFO(ClrHi,		NO_ARG,			0),
 	asBCINFO(JitEntry,	PTR_ARG,		0),
-	asBCINFO(CallPtr,	rW_ARG,			0xFFFF),
+	asBCINFO(CallPtr,	W_rW_ARG,		0xFFFF),
 	asBCINFO(FuncPtr,	PTR_ARG,		AS_PTR_SIZE),
 	asBCINFO(LoadThisR,	W_DW_ARG,		0),
 	asBCINFO(PshV8,		rW_ARG,			2),
@@ -2016,13 +2029,13 @@ const asSBCInfo asBCInfo[256] =
 };
 
 // Macros to access bytecode instruction arguments
-#define asBC_DWORDARG(x)  (*(((asDWORD*)x)+1))
-#define asBC_INTARG(x)    (*(int*)(((asDWORD*)x)+1))
-#define asBC_QWORDARG(x)  (*(asQWORD*)(((asDWORD*)x)+1))
-#define asBC_FLOATARG(x)  (*(float*)(((asDWORD*)x)+1))
-#define asBC_PTRARG(x)    (*(asPWORD*)(((asDWORD*)x)+1))
-#define asBC_WORDARG0(x)  (*(((asWORD*)x)+1))
-#define asBC_WORDARG1(x)  (*(((asWORD*)x)+2))
+#define asBC_DWORDARG(x)  (*(((AS_NAMESPACE_QUALIFIER asDWORD*)x)+1))
+#define asBC_INTARG(x)    (*(int*)(((AS_NAMESPACE_QUALIFIER asDWORD*)x)+1))
+#define asBC_QWORDARG(x)  (*(AS_NAMESPACE_QUALIFIER asQWORD*)(((AS_NAMESPACE_QUALIFIER asDWORD*)x)+1))
+#define asBC_FLOATARG(x)  (*(float*)(((AS_NAMESPACE_QUALIFIER asDWORD*)x)+1))
+#define asBC_PTRARG(x)    (*(AS_NAMESPACE_QUALIFIER asPWORD*)(((AS_NAMESPACE_QUALIFIER asDWORD*)x)+1))
+#define asBC_WORDARG0(x)  (*(((AS_NAMESPACE_QUALIFIER asWORD*)x)+1))
+#define asBC_WORDARG1(x)  (*(((AS_NAMESPACE_QUALIFIER asWORD*)x)+2))
 #define asBC_SWORDARG0(x) (*(((short*)x)+1))
 #define asBC_SWORDARG1(x) (*(((short*)x)+2))
 #define asBC_SWORDARG2(x) (*(((short*)x)+3))

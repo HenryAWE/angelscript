@@ -1,6 +1,6 @@
 /*
    AngelCode Scripting Library
-   Copyright (c) 2003-2025 Andreas Jonsson
+   Copyright (c) 2003-2026 Andreas Jonsson
 
    This software is provided 'as-is', without any express or implied
    warranty. In no event will the authors be held liable for any
@@ -911,7 +911,7 @@ void asCBuilder::RegisterNamespaceVisibility(asCScriptNode* node, asCScriptCode*
 
 void asCBuilder::AddVisibleNamespaces(asSNameSpace *ns, const asCArray<asSNameSpace*>& visited, asCArray<asSNameSpace*>& pending)
 {
-	asSMapNode<asSNameSpace*, asCArray<asSNameSpace*>>* cursor = 0;
+	asSMapNode< asSNameSpace*, asCArray<asSNameSpace*> >* cursor = 0;
 
 	if (namespaceVisibility.MoveTo(&cursor, ns))
 	{
@@ -1109,7 +1109,7 @@ int asCBuilder::ParseDataType(const char *datatype, asCDataType *result, asSName
 	asCScriptNode *dataType = parser.GetScriptNode()->firstChild;
 
 	*result = CreateDataTypeFromNode(dataType, &source, implicitNamespace, true);
-	if( isReturnType )
+	if( isReturnType && numErrors == 0 )
 		*result = ModifyDataTypeFromNode(*result, dataType->next, &source, 0, 0);
 
 	if( numErrors > 0 )
@@ -1371,6 +1371,8 @@ int asCBuilder::ParseFunctionDeclaration(asCObjectType *objType, const char *dec
 
 	// Scoped reference types are allowed to use handle when returned from application functions
 	func->returnType = CreateDataTypeFromNode(node->firstChild, &source, objType ? objType->nameSpace : ns, true, parentClass ? parentClass : objType, true, 0, isTemplate ? &func->templateSubTypes : 0);
+	if( numErrors > 0 )
+		return asINVALID_DECLARATION;
 	func->returnType = ModifyDataTypeFromNode(func->returnType, node->firstChild->next, &source, 0, &autoHandle);
 		
 	if( autoHandle && (!func->returnType.IsObjectHandle() || func->returnType.IsReference()) )
@@ -1417,6 +1419,8 @@ int asCBuilder::ParseFunctionDeclaration(asCObjectType *objType, const char *dec
 		asETypeModifiers inOutFlags;
 		asCDataType type;
 		type = CreateDataTypeFromNode(n, &source, objType ? objType->nameSpace : ns, false, parentClass ? parentClass : objType, true, 0, isTemplate ? &func->templateSubTypes : 0);
+		if (numErrors > 0)
+			return asINVALID_DECLARATION;
 		type = ModifyDataTypeFromNode(type, n->next, &source, &inOutFlags, &autoHandle);
 
 		// Reference types cannot be passed by value to system functions
@@ -2279,7 +2283,7 @@ int asCBuilder::RegisterUsingNamespace(asCScriptNode *node, asCScriptCode *file,
 	}
 
 	asSNameSpace* visibleNamespace = engine->AddNameSpace(name.AddressOf());
-	asSMapNode<asSNameSpace*, asCArray<asSNameSpace*>>* cursor = 0;
+	asSMapNode< asSNameSpace*, asCArray<asSNameSpace*> >* cursor = 0;
 
 	if (namespaceVisibility.MoveTo(&cursor, ns))
 	{
@@ -3109,7 +3113,7 @@ void asCBuilder::AddInterfaceToClass(sClassDeclaration *decl, asCScriptNode *err
 		if( !decl->typeInfo->Implements(intfType) )
 		{
 			asCString str;
-			str.Format(TXT_SHARED_s_DOESNT_MATCH_ORIGINAL, decl->typeInfo->GetName());
+			str.Format(TXT_SHARED_s_DOESNT_MATCH_ORIGINAL_s, decl->typeInfo->GetName(), decl->typeInfo->GetModule() ? decl->typeInfo->GetModule()->GetName() : "");
 			WriteError(str, decl->script, errNode);
 			return;
 		}
@@ -3426,7 +3430,7 @@ void asCBuilder::DetermineTypeRelations()
 								if (CastToObjectType(decl->typeInfo)->derivedFrom != objType)
 								{
 									asCString str;
-									str.Format(TXT_SHARED_s_DOESNT_MATCH_ORIGINAL, decl->typeInfo->GetName());
+									str.Format(TXT_SHARED_s_DOESNT_MATCH_ORIGINAL_s, decl->typeInfo->GetName(), decl->typeInfo->GetModule() ? decl->typeInfo->GetModule()->GetName() : "");
 									WriteError(str, file, node);
 								}
 							}
@@ -3737,7 +3741,7 @@ void asCBuilder::CompileClasses(asUINT numTempl)
 					if( !found )
 					{
 						asCString str;
-						str.Format(TXT_SHARED_s_DOESNT_MATCH_ORIGINAL, ot->GetName());
+						str.Format(TXT_SHARED_s_DOESNT_MATCH_ORIGINAL_s, ot->GetName(), ot->GetModule() ? ot->GetModule()->GetName() : "");
 						WriteError(str, file, nd);
 					}
 				}
@@ -4431,7 +4435,7 @@ void asCBuilder::IncludePropertiesFromMixins(sClassDeclaration *decl)
 								if( !found )
 								{
 									asCString str;
-									str.Format(TXT_SHARED_s_DOESNT_MATCH_ORIGINAL, ot->GetName());
+									str.Format(TXT_SHARED_s_DOESNT_MATCH_ORIGINAL_s, ot->GetName(), ot->GetModule() ? ot->GetModule()->GetName() : "");
 									WriteError(str, decl->script, decl->node);
 									WriteInfo(TXT_WHILE_INCLUDING_MIXIN, decl->script, node);
 								}
@@ -4830,7 +4834,7 @@ int asCBuilder::RegisterEnum(asCScriptNode *node, asCScriptCode *file, asSNameSp
 				if( !found )
 				{
 					asCString str;
-					str.Format(TXT_SHARED_s_DOESNT_MATCH_ORIGINAL, st->GetName());
+					str.Format(TXT_SHARED_s_DOESNT_MATCH_ORIGINAL_s, st->GetName(), st->GetModule() ? st->GetModule()->GetName() : "");
 					WriteError(str, file, tmp);
 					break;
 				}
@@ -5276,7 +5280,7 @@ int asCBuilder::RegisterScriptFunction(asCScriptNode *node, asCScriptCode *file,
 		if( !found )
 		{
 			asCString str;
-			str.Format(TXT_SHARED_s_DOESNT_MATCH_ORIGINAL, objType->GetName());
+			str.Format(TXT_SHARED_s_DOESNT_MATCH_ORIGINAL_s, objType->GetName(), objType->GetModule() ? objType->GetModule()->GetName() : "");
 			WriteError(str, file, node);
 		}
 
@@ -5818,6 +5822,19 @@ int asCBuilder::RegisterVirtualProperty(asCScriptNode *node, asCScriptCode *file
 				paramTypes.PushLast(emulatedType);
 				defaultArgs.PushLast(0);
 				name = "set_" + emulatedName;
+
+				if (emulatedType.IsReference())
+				{
+					paramModifiers[0] = asTM_INOUTREF;
+
+					if (!engine->ep.allowUnsafeReferences )
+					{
+						// Verify that the base type support &inout parameter types
+						if (!emulatedType.IsObject() || emulatedType.IsObjectHandle() ||
+							!((emulatedType.GetTypeInfo()->flags & asOBJ_NOCOUNT) || (CastToObjectType(emulatedType.GetTypeInfo())->beh.addref && CastToObjectType(emulatedType.GetTypeInfo())->beh.release)))
+							WriteError(TXT_ONLY_OBJECTS_MAY_USE_REF_INOUT, file, node->firstChild);
+					}
+				}
 			}
 		}
 
@@ -5846,7 +5863,7 @@ int asCBuilder::RegisterVirtualProperty(asCScriptNode *node, asCScriptCode *file
 				if( !found )
 				{
 					asCString str;
-					str.Format(TXT_SHARED_s_DOESNT_MATCH_ORIGINAL, objType->GetName());
+					str.Format(TXT_SHARED_s_DOESNT_MATCH_ORIGINAL_s, objType->GetName(), objType->GetModule() ? objType->GetModule()->GetName() : "");
 					WriteError(str, file, node);
 				}
 			}
@@ -6495,8 +6512,9 @@ asCDataType asCBuilder::CreateDataTypeFromNode(asCScriptNode *node, asCScriptCod
 						}
 						else
 						{
-							if (ti->flags & asOBJ_TEMPLATE)
+							if (ti->flags & asOBJ_TEMPLATE || ti->GetSubTypeCount() )
 							{
+								// For template types, find the template instance. For already instantiated template types, match the subtypes
 								ti = GetTemplateInstanceFromNode(n, file, CastToObjectType(ti), implicitNamespace, currentType, &n);
 								if (ti == 0)
 								{
@@ -6619,7 +6637,7 @@ asCDataType asCBuilder::CreateDataTypeFromNode(asCScriptNode *node, asCScriptCod
 			}
 
 			// Make sure the sub type can be instantiated
-			if( !dt.CanBeInstantiated() || dt.IsAuto() )
+			if( !dt.CanBeInstantiated() || dt.IsAuto() || dt.GetTokenType() == ttQuestion )
 			{
 				if (reportError)
 				{
