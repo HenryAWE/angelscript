@@ -207,6 +207,40 @@ bool Test()
 	COutStream out;
 	asIScriptModule *mod;
 
+	// Passing const value types by value to constructors as implicit conversion
+	// https://www.gamedev.net/forums/topic/717880-asbehave_construct-with-custom-pod-string-type-requires-const/5468147/
+	{
+		engine = asCreateScriptEngine();
+		engine->SetMessageCallback(asMETHOD(CBufferedOutStream, Callback), &bout, asCALL_THISCALL);
+		bout.buffer = "";
+
+		engine->RegisterObjectType("string_view", 1, asOBJ_VALUE | asOBJ_POD);
+		engine->RegisterStringFactory("const string_view", &testStringFactory);
+		engine->RegisterObjectType("type", 1, asOBJ_VALUE);
+		engine->RegisterObjectBehaviour("type", asBEHAVE_CONSTRUCT, "void f(const type &in)", asFUNCTION(0), asCALL_GENERIC);
+		engine->RegisterObjectBehaviour("type", asBEHAVE_CONSTRUCT, "void f(string_view)", asFUNCTION(0), asCALL_GENERIC);
+		engine->RegisterObjectBehaviour("type", asBEHAVE_DESTRUCT, "void f()", asFUNCTION(0), asCALL_GENERIC);
+		engine->RegisterGlobalFunction("void test(type)", asFUNCTION(0), asCALL_GENERIC);
+
+		mod = engine->GetModule("test", asGM_ALWAYS_CREATE);
+		mod->AddScriptSection("test",
+			"void main() { \n"
+			"  type t('test'); \n"
+			"  test('test'); \n"
+			"} \n");
+		r = mod->Build();
+		if (r < 0)
+			TEST_FAILED;
+
+		engine->ShutDownAndRelease();
+
+		if (bout.buffer != "")
+		{
+			PRINTF("%s", bout.buffer.c_str());
+			TEST_FAILED;
+		}
+	}
+
 	// Assign with invalid type
 	// https://www.gamedev.net/forums/topic/717831-failed-assertion-on-const-type-w-invalid-assignment/
 	{
@@ -384,7 +418,6 @@ bool Test()
 	//       assign even though it is a temporary obect (non lvalue)
 	// Found in Frictional Games source code
 	{
-#if 0 // temporarily disabled
 		engine = asCreateScriptEngine();
 		engine->SetMessageCallback(asMETHOD(CBufferedOutStream, Callback), &bout, asCALL_THISCALL);
 		bout.buffer = "";
@@ -429,8 +462,8 @@ bool Test()
 			PRINTF("%s", bout.buffer.c_str());
 			TEST_FAILED;
 		}
-#endif // temporarily disabled
 	}
+
 	// Test that expression with non lvalue used in assign op gives error
 	// TODO: This test can only be re-enabled after I've added support to indicate if 
 	// certain types should allow assignment even though not being lvalue 
@@ -3578,8 +3611,7 @@ bool Test()
 	// Problem reported by Ricky C
 	// http://www.gamedev.net/topic/625484-c99-hexfloats/#entry4943881
 	{
-#if 0 // temporarily disabled
- 		engine = asCreateScriptEngine(ANGELSCRIPT_VERSION);
+		engine = asCreateScriptEngine(ANGELSCRIPT_VERSION);
 		engine->SetMessageCallback(asMETHOD(CBufferedOutStream,Callback), &bout, asCALL_THISCALL);
 
 		bout.buffer = "";
@@ -3603,7 +3635,6 @@ bool Test()
 			TEST_FAILED;
 		}
 		engine->Release();
-#endif // temporarily disabled
 	}
 
 
@@ -5688,16 +5719,16 @@ bool Test()
 		engine->Release();
 	}
 
-	//fail = Test2() || fail;
-	//fail = Test3() || fail;
-	//fail = Test4() || fail;
-	//fail = Test5() || fail;
-	//fail = Test6() || fail;
-	//fail = Test7() || fail;
-	//fail = Test8() || fail;
-	//fail = Test9() || fail;
-	//fail = TestRetRef() || fail;
-	 fail = TestUserLiteral() || fail;
+	fail = Test2() || fail;
+	fail = Test3() || fail;
+	fail = Test4() || fail;
+	fail = Test5() || fail;
+	fail = Test6() || fail;
+	fail = Test7() || fail;
+	fail = Test8() || fail;
+	fail = Test9() || fail;
+	fail = TestRetRef() || fail;
+	fail = TestUserLiteral() || fail;
 
 	// Success
  	return fail;
