@@ -2372,7 +2372,7 @@ int asCScriptEngine::RegisterBehaviourToObjectType(asCObjectType *objectType, as
 			if (literalPattern)
 				literalPattern->Destroy(this);
 
-			WriteMessage("", 0, 0, asMSGTYPE_ERROR, TXT_LIST_FACTORY_EXPECTS_1_REF_PARAM);
+			WriteMessage("", 0, 0, asMSGTYPE_ERROR, TXT_LITERAL_CONSTRUCT_MUST_HAVE_EXACTLY_1_PARAM);
 			return ConfigError(asINVALID_DECLARATION, "RegisterObjectBehaviour", objectType->name.AddressOf(), decl);
 		}
 
