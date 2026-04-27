@@ -1818,6 +1818,7 @@ asCScriptNode *asCParser::ParseConstant()
 	}
 
 	// Check for user literal suffix on non-string constants (e.g. 3.14_f32)
+	// Only treat as user literal if the suffix is registered in the engine
 	if( t.type != ttStringConstant &&
 		t.type != ttMultilineStringConstant &&
 		t.type != ttHeredocStringConstant )
@@ -1826,9 +1827,30 @@ asCScriptNode *asCParser::ParseConstant()
 		GetToken(&next);
 		if( next.type == ttIdentifier && next.pos == t.pos + t.length )
 		{
-			// Adjacent identifier without whitespace — user literal suffix
-			RewindTo(&next);
-			node->AddChildLast(ParseUserLiteral());
+			asCString suffix(&script->code[next.pos], next.length);
+			bool isRegistered = false;
+			if( engine )
+			{
+				asSMapNode<asCString, int> *cursor = 0;
+				if( engine->literals.suffix.uint64Literals.MoveTo(&cursor, suffix) ||
+				    engine->literals.suffix.doubleLiterals.MoveTo(&cursor, suffix) ||
+				    engine->literals.suffix.stringLiterals.MoveTo(&cursor, suffix) ||
+				    engine->literals.suffix.userLiterals.MoveTo(&cursor, suffix) ||
+				    engine->literalsCallback.suffix.uint64Literals.MoveTo(&cursor, suffix) ||
+				    engine->literalsCallback.suffix.doubleLiterals.MoveTo(&cursor, suffix) ||
+				    engine->literalsCallback.suffix.stringLiterals.MoveTo(&cursor, suffix) ||
+				    engine->literalsCallback.suffix.userLiterals.MoveTo(&cursor, suffix) )
+				{
+					isRegistered = true;
+				}
+			}
+			if( isRegistered )
+			{
+				RewindTo(&next);
+				node->AddChildLast(ParseUserLiteral());
+			}
+			else
+				RewindTo(&next);
 		}
 		else
 			RewindTo(&next);
@@ -2007,7 +2029,23 @@ asCScriptNode *asCParser::ParseStringConstant(bool allowUserLiteral)
 		RewindTo(&t);
 
 		if (t.type == ttIdentifier)
-			node->AddChildLast(ParseUserLiteral());
+		{
+			asCString suffix(&script->code[t.pos], t.length);
+			bool isRegistered = false;
+			if( engine )
+			{
+				asSMapNode<asCString, int> *cursor = 0;
+				if( engine->literals.suffix.stringLiterals.MoveTo(&cursor, suffix) ||
+				    engine->literalsCallback.suffix.stringLiterals.MoveTo(&cursor, suffix) ||
+				    engine->literals.suffix.userLiterals.MoveTo(&cursor, suffix) ||
+				    engine->literalsCallback.suffix.userLiterals.MoveTo(&cursor, suffix) )
+				{
+					isRegistered = true;
+				}
+			}
+			if( isRegistered )
+				node->AddChildLast(ParseUserLiteral());
+		}
 	}
 
 	return node;

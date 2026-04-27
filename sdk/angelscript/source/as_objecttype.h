@@ -68,6 +68,7 @@ struct asSTypeBehaviour
 		gcReleaseAllReferences = 0;
 		templateCallback = 0;
 		getWeakRefFlag = 0;
+		literalFactory = 0;
 	}
 
 	int factory;

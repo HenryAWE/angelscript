@@ -272,7 +272,6 @@ enum asEBehaviours
 	// Value object memory management
 	asBEHAVE_CONSTRUCT,
 	asBEHAVE_LIST_CONSTRUCT,
-	asBEHAVE_LITERAL_CONSTRUCT,
 	asBEHAVE_DESTRUCT,
 
 	// Reference object memory management
@@ -284,7 +283,6 @@ enum asEBehaviours
 
 	// Object operators
 	asBEHAVE_TEMPLATE_CALLBACK,
-	asBEHAVE_LITERAL_CALLBACK,
 
 	// Garbage collection behaviours
 	asBEHAVE_FIRST_GC,
@@ -294,6 +292,10 @@ enum asEBehaviours
 	 asBEHAVE_ENUMREFS,
 	 asBEHAVE_RELEASEREFS,
 	asBEHAVE_LAST_GC = asBEHAVE_RELEASEREFS,
+
+	// User-defined literal support
+	asBEHAVE_LITERAL_CONSTRUCT,
+	asBEHAVE_LITERAL_CALLBACK,
 
 	asBEHAVE_MAX
 };
