@@ -1814,6 +1814,23 @@ asCScriptNode *asCParser::ParseConstant()
 		RewindTo(&t);
 	}
 
+	// Check for user literal suffix on non-string constants (e.g. 3.14_f32)
+	if( t.type != ttStringConstant &&
+		t.type != ttMultilineStringConstant &&
+		t.type != ttHeredocStringConstant )
+	{
+		sToken next;
+		GetToken(&next);
+		if( next.type == ttIdentifier && next.pos == t.pos + t.length )
+		{
+			// Adjacent identifier without whitespace — user literal suffix
+			RewindTo(&next);
+			node->AddChildLast(ParseUserLiteral());
+		}
+		else
+			RewindTo(&next);
+	}
+
 	return node;
 }
 

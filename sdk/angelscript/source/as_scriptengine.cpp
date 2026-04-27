@@ -2366,9 +2366,64 @@ int asCScriptEngine::RegisterBehaviourToObjectType(asCObjectType *objectType, as
 			return ConfigError(asILLEGAL_BEHAVIOUR_FOR_TYPE, "RegisterObjectBehaviour", objectType->name.AddressOf(), decl);
 		}
 
+		// Verify the parameters: exactly 1 parameter
+		if (func.parameterTypes.GetLength() != 1)
+		{
+			if (literalPattern)
+				literalPattern->Destroy(this);
+
+			WriteMessage("", 0, 0, asMSGTYPE_ERROR, TXT_LIST_FACTORY_EXPECTS_1_REF_PARAM);
+			return ConfigError(asINVALID_DECLARATION, "RegisterObjectBehaviour", objectType->name.AddressOf(), decl);
+		}
+
+		// Don't accept duplicates
+		if( beh->literalFactory )
+		{
+			if( literalPattern )
+				literalPattern->Destroy(this);
+
+			return ConfigError(asALREADY_REGISTERED, "RegisterObjectBehaviour", objectType->name.AddressOf(), decl);
+		}
+
 		func.id = AddBehaviourFunction(func, internal);
 
+		// Store the function id in the behaviour
+		beh->literalFactory = func.id;
+
 		r = scriptFunctions[func.id]->RegisterLiteralPattern(decl, literalPattern);
+
+		if (literalPattern)
+			literalPattern->Destroy(this);
+
+		if(r < 0)
+			return ConfigError(r, "RegisterObjectBehaviour", objectType->name.AddressOf(), decl);
+	}
+	else if( behaviour == asBEHAVE_LITERAL_CALLBACK )
+	{
+		func.name = "$literalCallback";
+
+		// Verify that the return type is bool
+		if (func.returnType != asCDataType::CreatePrimitive(ttBool, false))
+		{
+			if (literalPattern)
+				literalPattern->Destroy(this);
+
+			return ConfigError(asINVALID_DECLARATION, "RegisterObjectBehaviour", objectType->name.AddressOf(), decl);
+		}
+
+		// Verify that it is a value type
+		if (!(func.objectType->flags & asOBJ_VALUE))
+		{
+			if (literalPattern)
+				literalPattern->Destroy(this);
+
+			WriteMessage("", 0, 0, asMSGTYPE_ERROR, TXT_ILLEGAL_BEHAVIOUR_FOR_TYPE);
+			return ConfigError(asILLEGAL_BEHAVIOUR_FOR_TYPE, "RegisterObjectBehaviour", objectType->name.AddressOf(), decl);
+		}
+
+		func.id = AddBehaviourFunction(func, internal);
+
+		r = scriptFunctions[func.id]->RegisterLiteralPattern(decl, literalPattern, 0, 0, true);
 
 		if (literalPattern)
 			literalPattern->Destroy(this);

@@ -303,7 +303,7 @@ public:
 	int       RegisterListPattern(const char *decl, asCScriptNode *listPattern);
 	int       ParseListPattern(asSListPatternNode *&target, const char *decl, asCScriptNode *listPattern);
 
-	int       RegisterLiteralPattern(const char *decl, asCScriptNode *literalPattern, asCString* outLiteral = 0, bool *outIsPrefix = 0);
+	int       RegisterLiteralPattern(const char *decl, asCScriptNode *literalPattern, asCString* outLiteral = 0, bool *outIsPrefix = 0, bool isCallback = false);
 	int       ParseLiteralPattern();
 
 	bool      DoesReturnOnStack() const;
@@ -373,6 +373,9 @@ public:
 
 	// Used by list factory behaviour
 	asSListPatternNode *listPattern;
+
+	// Used by literal construct behaviour
+	asSLiteralPatternNode *literalPattern;
 
 	// Used by asFUNC_SCRIPT
 	struct ScriptFunctionData
